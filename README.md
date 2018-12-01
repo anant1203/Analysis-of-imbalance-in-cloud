@@ -6,5 +6,5 @@ Resource allocated and used by jobs had alot of difference.
 Since the resource allocated way to much than required. Lot of other job remained in waiting state.
 # Implementation.
 As our final project we divide the project in two phase.
-First:Revaluate the paper as per our undersatnding.We found that the first graph mentioned in the paper had some issue. The graph was correct but explanation was not upto the mark.
-During our second phase we applied machine learning(logistic regression) to  develop a model which can help the resource manager in the allocation of the resource such as CPU and Memory.
+First Phase: Revaluate the paper as per our undersatnding. We found that the first graph mentioned in the paper had some issue. The graph was correct but explanation was not upto the mark. We also tried to figure out the reason for problem.
+During our second phase: we applied machine learning(logistic regression) to develop a model which can help the resource manager in the allocation of the resource such as CPU and Memory as per requirement.
