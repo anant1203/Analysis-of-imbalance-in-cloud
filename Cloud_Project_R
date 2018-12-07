@@ -1,0 +1,66 @@
+library(e1071)
+library(ggplot)
+
+cont_event.df <- read.csv("container_event.csv")
+cont_usage.df <- read.csv("container_usage.csv")
+
+contevent.df <- contevent.df[-c(1:2,4,9)]
+contusage.df <- contusage.df[-c(1,6:12)]
+
+contevent.df <- contevent.df[complete.cases(contevent.df),]
+contusage.df <- contusage.df[complete.cases(contusage.df),]
+
+contdata.df <- merge(contevent.df, contusage.df)
+
+boxplot(contdata.df$cpu_requested, data = contdata.df, main = "Outlier requested cpu", horizontal = TRUE)
+boxplot(contdata.df$disk_requested, data = contdata.df, main = "Outlier requested disk", horizontal = TRUE)
+boxplot(contdata.df$mem_requested, data = contdata.df, main = "Outlier requested mem", horizontal = TRUE)
+
+#creating a new vector for used disk
+used_disk <- contdata.df$pcnt_used_disk 
+#to plot the distribution of used disk
+plot(density(used_disk), main = "Density Plot: Disk Used", ylab = "Frequency", sub = paste("Skewness:", round(e1071::skewness(used_disk), 2)) ) 
+
+used_memory <- contdata.df$pcnt_used_mem
+plot(density(used_memory), main = "Density Plot: Memory Used", ylab = "Frequency", sub = paste("Skewness:", round(e1071::skewness(used_memory), 2)) ) 
+
+used_cpu <- contdata.df$pcnt_used_cpu
+plot(density(used_cpu), main = "Density Plot: CPU Used", ylab = "Frequency", sub = paste("Skewness:", round(e1071::skewness(used_cpu), 2)) ) 
+
+
+#aggregating all the three used_cpu, used_memory and used_disk to see the combined outlier
+contdata.df$agg_all <- c(contdata.df$cpu_requested + contdata.df$mem_requested + contdata.df$disk_requested)
+
+boxplot(contdata.df$agg_all, data = contdata.df , main = "Agg outlier", horizontal = T)
+
+#removing the outlier data
+contdata.df <- contdata.df[!(contdata.df$agg_all > 9),]
+
+#calculating the actual cpu used from the percent cpu used given
+contdata.df$act_used_cpu <- c((contdata.df$cpu_requested*contdata.df$pcnt_used_cpu)/100)
+contdata.df$act_used_mem <- c((contdata.df$mem_requested*contdata.df$pcnt_used_mem)/100)
+contdata.df$act_used_disk <- c((contdata.df$disk_requested*contdata.df$pcnt_used_disk)/100)
+
+#setting seed to get the random samples
+set.seed(100)
+#80% data for training
+trainingRowIndex <- sample(1:nrow(contdata.df), 0.8*nrow(contdata.df)) 
+trainingData <- contdata.df[trainingRowIndex,]
+
+#20% data for testing
+testData <- contdata.df[-trainingRowIndex,]
+
+#training the model
+lmod_cpu <- lm(trainingData$act_used_cpu ~ trainingData$cpu_requested, data = trainingData)
+cpu_pred <- predict(lmod_cpu, as.data.frame(testData$cpu_requested))
+cpu_result <- data.frame(cbind(actual = testData$act_used_cpu , predicted = cpu_pred))
+
+lmod_mem <- lm(trainingData$act_used_mem ~ trainingData$mem_requested, data = trainingData)
+mem_pred <- predict(lmod_mem, as.data.frame(testData$mem_requested))
+mem_result <- data.frame(cbind(actual = testData$act_used_mem, predicted = mem_pred))
+
+lmod_disk <- lm(trainingData$act_used_disk ~ trainingData$disk_requested, data = trainingData)
+disk_pred <- predict(lmod_disk, as.data.frame(testData$disk_requested), data = trainingData)
+disk_result <- data.frame(cbind(actual = testData$act_used_disk , predicted = disk_pred))
+
+
